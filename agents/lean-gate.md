@@ -15,7 +15,7 @@ For each check, report one line: the check name, pass/fail, and the key numbers 
 - A failure caused by the environment (locked screen, missing display, network) is reported as an environment problem, not a code failure.
 - Flag anything suspicious in `git status --porcelain`: generated output, secrets, or files outside the unit.
 
-When asked to write a patch, write `git diff` plus new untracked files to the given path, and report its line count and file list. Nothing else.
+When asked to write a patch, write `git diff --stat`, then `git diff -U10`, then new untracked files to the given path, and report its line count and file list. Nothing else.
 
 Report `pass` only if every requested check passed. Do not paste logs.
 

@@ -15,9 +15,9 @@ Measured on a real stage: wall clock 160 → 60 min, cache reads −90%, estimat
 |---|---|---|---|
 | 1. Code map | `lean-finder` (Haiku) | low | ≤ 180 lines: `file:start-end`, symbol, what changes. grep and line ranges only. |
 | 2. Implement | `lean-implementer` (Sonnet), one per owner, in order | high | The brief includes the code map and a handoff path. After ~60 calls, write the handoff file and stop; a fresh implementer continues (≤ 3 batons). |
-| 3. Patch | `lean-gate` | low | Write the unit's diff, including new files, to `SP/diff-<unit>.patch`. |
+| 3. Patch | `lean-gate` | low | Write `git diff --stat` and `git diff -U10`, including new files, to `SP/diff-<unit>.patch`. Ten context lines let the reviewer judge hunks without opening the files. |
 | 4a. Gate | `lean-gate` (Haiku) | low | Full test suite plus the slow/integration suite, once. One line per check. |
-| 4b. Review | `lean-reviewer` (Opus), **one**, in parallel with 4a | high | Reads the patch first and opens files only where needed. Spec checklist plus correctness in one pass. |
+| 4b. Review | `lean-reviewer` (Opus), **one**, in parallel with 4a | high | Reads the patch first; outside it, one focused check per named risk. Spec checklist plus correctness in one pass. Do not add open-ended asks like "check all uses" without a concrete reason. |
 | 4c. Optional critic | `lean-reviewer` with a visual or UX lens | high | Only when there is art or UI to judge. |
 | 5. Fix | `lean-fixer` (Sonnet), **one** that owns all files | high | Verifies each finding before fixing it. One round. |
 | 6. Final gate | `lean-gate` | low | Rerun what the fix touched, or the full set if unsure. |
@@ -26,6 +26,8 @@ Measured on a real stage: wall clock 160 → 60 min, cache reads −90%, estimat
 **Effort:** low for mechanical work (gate, finder), medium for mapping and measuring, high for implementing, fixing and reviewing. Use **xhigh only as an exception**: a fix that failed twice, or a hard design call.
 
 **Skip steps** for small changes: a one-file fix needs no code map, no batons and no patch file. Use one implementer, then the gate and review.
+
+**Batch same-shape work.** Several small edits of one kind, such as the same rename, type alias or attribute repeated across files, are one unit: one brief listing every file and its change, one implementer, one review of one diff. Every agent pays its starting context (16–30k), so ten one-line tasks as ten units cost ten times that. Keep work that needs its own judgment or its own tests as separate units.
 
 ## Brief template (keep it short; agents reread it on every call)
 
@@ -46,6 +48,7 @@ Never change an existing test's assertion to make it pass: stop and report the c
 
 - Your own context is the biggest one. Batch independent tool calls, filter long output (`| tail`, `| grep`), read agent results as summaries, and delegate big reads to `lean-finder` or `lean-explorer`.
 - Start long multi-unit runs in a **fresh session** with a short handoff file. Agent definitions are also only loaded at session start.
+- **Keep a progress ledger** at `SP/progress.md` for any run with more than one unit or phase. Write one line as each finishes, e.g. `Unit <name>: complete (patch SP/diff-<name>.patch, gate pass, 1 fix round)` or `Phase design: complete (workflow wf_…, result SP/design.md)`. After a compaction, trust the ledger and `git status` over your memory, and resume at the first unit without a line. Re-dispatching finished units is the most expensive failure of a long run. Inside one workflow the script already holds this state; the ledger covers the gaps between workflows and Agent-tool runs. You write it, not the agents.
 - Only one agent builds or runs tests at a time. Readers never touch build output. A reader that must execute code builds an isolated copy.
 - Docs and commits are yours. Agents never commit.
 

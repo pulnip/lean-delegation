@@ -58,7 +58,7 @@ for (const im of A.impl) {
 
 phase('Verify')
 const patchFile = A.sp + '/diff-' + A.unit + '.patch'
-const patch = await agent('Repository ' + A.repo + '. Write the unit patch and nothing else. Run exactly:\ncd ' + A.repo + ' && { git diff; git ls-files --others --exclude-standard -- ' + (A.patchPaths || '.') + ' | while read f; do git diff --no-index /dev/null "$f"; done; } > ' + patchFile + '; wc -l < ' + patchFile + '; git status --porcelain\nReturn the line count and changed/new files.', { label: 'patch', phase: 'Verify', agentType: AG.gate, schema: PATCH })
+const patch = await agent('Repository ' + A.repo + '. Write the unit patch and nothing else. Run exactly:\ncd ' + A.repo + ' && { git diff --stat; git diff -U10; git ls-files --others --exclude-standard -- ' + (A.patchPaths || '.') + ' | while read f; do git diff --no-index /dev/null "$f"; done; } > ' + patchFile + '; wc -l < ' + patchFile + '; git status --porcelain\nReturn the line count and changed/new files.', { label: 'patch', phase: 'Verify', agentType: AG.gate, schema: PATCH })
 const thunks = [
   () => agent(CTX + '\n\nGATE (round 1). ' + A.gate, { label: 'gate 1', phase: 'Verify', agentType: AG.gate, schema: GATE }),
   () => agent(CTX + '\n\nREVIEW this unit. Patch: ' + patchFile + ' (read it first). ' + (A.review || ''), { label: 'review', phase: 'Verify', agentType: AG.reviewer, schema: FINDINGS }),
