@@ -17,7 +17,7 @@ Measured on one stage of a TypeScript project, against a stage twice its size: w
 
 ## The pipeline for one unit of work
 
-SP is the run folder (see "Rules for you, the orchestrator").
+SP is the run folder (see "Rules for you, the orchestrator"). The agents load from this plugin as `lean-delegation:<name>`, e.g. `lean-delegation:lean-finder`; the names below leave the prefix out.
 
 | Step | Agent | Effort | Notes |
 |---|---|---|---|
@@ -55,7 +55,7 @@ Change an existing assertion only where this brief says the behaviour it checks 
 
 The code map is the one long part; it saves more exploration than it costs.
 
-`templates/workflow.js` runs the whole pipeline with the Workflow tool. Use it **only when the user opted into workflows**. Otherwise run the same steps one by one with the Agent tool (`subagent_type: lean-…`): wait for each step's result before starting the next (Agent runs in the background by default), and never start a builder while another runs. Effort comes from each agent definition.
+`templates/workflow.js` runs the whole pipeline with the Workflow tool. Use it **only when the user opted into workflows**. Otherwise run the same steps one by one with the Agent tool (`subagent_type: lean-delegation:lean-…`): wait for each step's result before starting the next (Agent runs in the background by default), and never start a builder while another runs. Effort comes from each agent definition.
 
 ## Rules for you, the orchestrator
 

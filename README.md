@@ -1,7 +1,7 @@
 # lean-delegation
 
 서브에이전트에 일을 나눠 맡길 때, 품질은 유지한 채 토큰과 시간을 줄이는 규칙.
-Claude Code용 스킬 하나 + 범용 에이전트 6개로 구성되어 있음.
+Claude Code용 스킬 하나 + 범용 에이전트 6개를 플러그인 하나로 묶었음.
 
 - `skills/lean-delegation/`
   - `SKILL.md`: 위임할지 판단, 파이프라인, 역할별 생각 강도, 지시 템플릿, 단위 마무리 확인, 프로젝트 준비 사항
@@ -18,19 +18,25 @@ Claude Code용 스킬 하나 + 범용 에이전트 6개로 구성되어 있음.
   | `lean-fixer` | Sonnet | high | 편집 가능 |
   | `lean-reviewer` | Opus | high | 읽기 전용 |
 
+  플러그인으로 읽히므로 이름 앞에 `lean-delegation:`이 붙는다 (예: `lean-delegation:lean-finder`, 스킬은 `/lean-delegation:lean-delegation`).
+
 ## 설치
 
-**방법 1: 링크.** clone하고 실행한다.
+`~/.claude/skills/` 아래에 clone한다.
+Claude Code는 `.claude-plugin/plugin.json`이 있는 그 폴더를 플러그인(`lean-delegation@skills-dir`)으로 그 자리에서 읽는다. 링크도 마켓플레이스도 필요 없다.
+
+macOS·Linux:
 
 ```sh
-./install.sh
+git clone <저장소 URL> ~/.claude/skills/lean-delegation
 ```
 
-`~/.claude/skills/lean-delegation`과 `~/.claude/agents/lean-*.md`가 이 저장소를 가리키는 링크, git pull하면 갱신.
-다른 곳을 가리키는 같은 이름의 링크나 파일은 건너뛴다.
-세션이 시작할 때 에이전트 정의를 읽으므로 새 세션을 열어서 확인한다.
+Windows (PowerShell):
 
-**방법 2: 플러그인.** `.claude-plugin/plugin.json`이 있으므로 플러그인 마켓플레이스를 통해 설치할 수도 있다.
-이때 에이전트 이름 앞에 `lean-delegation:`이 붙으므로 workflow 템플릿에 `ns: 'lean-delegation:'`를 넘긴다.
-고친 뒤에는 `plugin.json`의 `version`을 올린다.
-주의: 방법 1과 같이 쓰지 않는다(같은 이름 두 번 생김).
+```powershell
+git clone <저장소 URL> "$env:USERPROFILE\.claude\skills\lean-delegation"
+```
+
+- 새 세션을 열면 스킬과 에이전트가 뜬다. 이미 열린 세션에서는 `/reload-plugins`를 실행한다.
+- 갱신: `git pull` 뒤 `/reload-plugins` 또는 새 세션. 복사본이 아니라 그 자리에서 읽으므로 버전을 올리지 않아도 된다.
+- 같은 이름의 플러그인을 마켓플레이스로도 설치하면 그쪽이 우선이고 이 폴더는 로드되지 않는다. 하나만 쓴다.

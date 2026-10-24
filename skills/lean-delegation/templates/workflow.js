@@ -22,11 +22,11 @@ export const meta = {
 //   criticAfterGate: false,       // true when the critic judges artefacts the gate produces
 //   patchPaths: 'src tests',      // paths the patch covers; the unit's owned paths when units are not committed one by one
 //   agents: { finder, implementer, gate, reviewer, fixer },  // optional overrides, e.g. project-specific agents
-//   ns: 'lean-delegation:',       // name prefix when the agents come from the plugin
+//   ns: 'lean-delegation:',       // agent name prefix; the plugin's default. '' for agents installed as plain files
 //   effort: { fixer: 'xhigh' },   // optional per-role effort, only when the user asked or for the step-7 retry
 // }
 const A = args
-const NS = A.ns || ''
+const NS = A.ns ?? 'lean-delegation:'
 const AG = Object.assign({ finder: NS + 'lean-finder', implementer: NS + 'lean-implementer', gate: NS + 'lean-gate', reviewer: NS + 'lean-reviewer', fixer: NS + 'lean-fixer' }, A.agents || {})
 const EFFORT = A.effort || {}
 const MAX_BATONS = 3

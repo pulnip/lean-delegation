@@ -1,5 +1,5 @@
 {
   "name": "lean-delegation",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Cost-disciplined subagent delegation: a skill with the pipeline, rules and a profiler, plus generic lean-* agents (Haiku finder/gate, Sonnet explorer/implementer/fixer, Opus reviewer) with tool allowlists and per-role effort."
 }
