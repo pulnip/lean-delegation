@@ -4,7 +4,7 @@
 Claude Code용 스킬 하나 + 범용 에이전트 6개로 구성되어 있음.
 
 - `skills/lean-delegation/`
-  - `SKILL.md`: 파이프라인, 역할별 생각 강도, 지시 템플릿, 커밋 전 확인, 프로젝트 준비 사항
+  - `SKILL.md`: 위임할지 판단, 파이프라인, 역할별 생각 강도, 지시 템플릿, 단위 마무리 확인, 프로젝트 준비 사항
   - `templates/workflow.js`: Workflow 도구용 단계 템플릿 (args로 저장소·단계·담당 파일을 전달한다)
   - `profile_agents.py`: 에이전트 기록에서 호출 수·문맥·캐시 읽기/쓰기·추정 비용을 구한다.
 - `agents/`
@@ -20,14 +20,17 @@ Claude Code용 스킬 하나 + 범용 에이전트 6개로 구성되어 있음.
 
 ## 설치
 
-**방법 1: 링크** clone하고 실행한다.
+**방법 1: 링크.** clone하고 실행한다.
 
 ```sh
 ./install.sh
 ```
 
 `~/.claude/skills/lean-delegation`과 `~/.claude/agents/lean-*.md`가 이 저장소를 가리키는 링크, git pull하면 갱신.
+다른 곳을 가리키는 같은 이름의 링크나 파일은 건너뛴다.
 세션이 시작할 때 에이전트 정의를 읽으므로 새 세션을 열어서 확인한다.
 
 **방법 2: 플러그인.** `.claude-plugin/plugin.json`이 있으므로 플러그인 마켓플레이스를 통해 설치할 수도 있다.
+이때 에이전트 이름 앞에 `lean-delegation:`이 붙으므로 workflow 템플릿에 `ns: 'lean-delegation:'`를 넘긴다.
+고친 뒤에는 `plugin.json`의 `version`을 올린다.
 주의: 방법 1과 같이 쓰지 않는다(같은 이름 두 번 생김).

@@ -19,8 +19,8 @@ If the question needs understanding a whole flow or judging a design, say so in 
 
 ## Keep your context small
 
-Cost grows with context size × number of tool calls, so:
-- Find things with `grep -n` first, then read only the lines you need (`Read` with offset/limit, or `sed -n 'a,bp'`). Never read a file over 300 lines whole.
-- Filter long command output: `| tail -n 40`, or `| grep -E 'FAIL|✖|error'`. For test suites, read only the summary lines.
+Every tool call rereads your whole context, so:
+- Search first (`grep -n`), then read only the line ranges you need (`Read` with offset/limit). Read a whole file only when you need most of it, and then in as few reads as you can (Read stops at 2,000 lines): many small reads cost more calls.
+- Filter long command output (`| head`, `| grep`).
 - Do not re-read what is already in your context.
-- Keep the final report under 30 lines, with numbers in a table.
+- Report in under 30 lines; put several numbers in a table. A longer artefact your brief asks for (a code map) is exempt.
