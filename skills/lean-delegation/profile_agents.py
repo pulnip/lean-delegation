@@ -1,5 +1,6 @@
 # Profile Claude Code subagent transcripts: calls, context growth, cache traffic, time per tool, estimated cost.
-# Usage: python3 notes/profile_agents.py <dir-with-agent-*.jsonl> [more dirs...]
+# Usage: python3 profile_agents.py <dir-with-agent-*.jsonl> [more dirs...]
+# profile_agents.ps1 is the PowerShell port; keep their output identical.
 import glob
 import json
 import os
@@ -28,22 +29,22 @@ def ts(value):
 
 
 def kind_of(name, tool_input):
-    if name not in ('Bash', 'bash'):
+    if name not in ('Bash', 'bash', 'PowerShell'):
         return name
     cmd = (tool_input or {}).get('command', '')
     if 'npm test' in cmd or 'node --test' in cmd:
-        return 'Bash:test'
+        return name + ':test'
     if 'e2e' in cmd:
-        return 'Bash:e2e'
+        return name + ':e2e'
     if 'tsc' in cmd:
-        return 'Bash:tsc'
+        return name + ':tsc'
     if re.search(r'\bnode\b', cmd):
-        return 'Bash:node'
+        return name + ':node'
     if 'python' in cmd:
-        return 'Bash:python'
-    if re.search(r'\b(grep|rg|sed|cat|head|tail|wc|ls|find)\b', cmd):
-        return 'Bash:read'
-    return 'Bash:other'
+        return name + ':python'
+    if re.search(r'\b(grep|rg|sed|cat|head|tail|wc|ls|find|Get-Content|Select-String|Get-ChildItem|Select-Object)\b', cmd):
+        return name + ':read'
+    return name + ':other'
 
 
 def profile(path):

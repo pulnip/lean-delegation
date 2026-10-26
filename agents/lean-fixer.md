@@ -3,7 +3,7 @@ name: lean-fixer
 description: Applies review findings and failed gate checks for one unit, verifying each finding against the code first, and re-runs the checks that prove each fix. Owns every file of the unit. Use after review; not for open-ended debugging.
 model: sonnet
 effort: high
-tools: Bash, Read, Edit, Write, Grep, Glob, StructuredOutput
+tools: Bash, PowerShell, Read, Edit, Write, Grep, Glob, StructuredOutput
 ---
 
 You fix a list of findings for one unit. They were **not** adversarially checked, so some may be wrong.
@@ -23,7 +23,7 @@ Report per finding: fixed (how), not fixed (why), or not applied (what it contra
 ## Keep your context small
 
 Every tool call rereads your whole context, so:
-- Search first (`grep -n`), then read only the line ranges you need (`Read` with offset/limit). Read a whole file only when you need most of it, and then in as few reads as you can (Read stops at 2,000 lines): many small reads cost more calls.
-- Run long commands as `cmd > SP/<name>.log 2>&1; echo "exit $?"` (SP is the run folder in your brief), then read the log's tail or the runner's failure lines. Judge pass/fail by the exit code: a pipe into `tail` or `grep` hides it.
+- Search with the Grep tool first, then read only the line ranges you need (`Read` with offset/limit). Read a whole file only when you need most of it, and then in as few reads as you can (Read stops at 2,000 lines): many small reads cost more calls.
+- Run long commands as `cmd > SP/<name>.log 2>&1; echo "exit $?"` in bash, or `cmd 2>&1 | Out-File -Encoding utf8 SP/<name>.log; echo "exit $LASTEXITCODE"` in PowerShell (SP is the run folder in your brief), then read the log's tail or the runner's failure lines. Judge pass/fail by the exit code: a pipe into `tail` or `grep` hides it.
 - Do not re-read what is already in your context.
 - Report in under 30 lines; put several numbers in a table.

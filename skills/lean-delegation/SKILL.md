@@ -21,7 +21,7 @@ SP is the run folder (see "Rules for you, the orchestrator"). The agents load fr
 
 | Step | Agent | Effort | Notes |
 |---|---|---|---|
-| 1. Code map | `lean-finder` (Haiku) | low | ≤ 180 lines: `file:start-end`, symbol, what changes. grep and line ranges only. Line numbers are hints; implementers confirm them with grep. |
+| 1. Code map | `lean-finder` (Haiku) | low | ≤ 180 lines: `file:start-end`, symbol, what changes. Grep and line ranges only. Line numbers are hints; implementers confirm them with Grep. |
 | 2. Implement | `lean-implementer` (Sonnet), one per owner, in order | high | The brief includes the code map and a handoff path. After ~60 calls, write the handoff file and stop; a fresh implementer continues (≤ 3 batons). If an implementer reports `blocked`, returns nothing, or still hands off after the third baton, stop the unit and report: do not review half-done work. |
 | 3. Patch | you, or `lean-gate` in a workflow | low | Write `git diff HEAD --stat`, the new-file list, `git diff HEAD -U10` and each new file to `SP/diff-<unit>.patch`. Ten context lines let the reviewer judge hunks without opening the files. |
 | 4a. Gate | `lean-gate` (Haiku) | low | The project's pre-commit checks (unit tests, type check, the slow suite), once. One line per check, judged by exit code. |
@@ -55,7 +55,7 @@ Change an existing assertion only where this brief says the behaviour it checks 
 
 The code map is the one long part; it saves more exploration than it costs.
 
-`templates/workflow.js` runs the whole pipeline with the Workflow tool. Use it **only when the user opted into workflows**. Otherwise run the same steps one by one with the Agent tool (`subagent_type: lean-delegation:lean-…`): wait for each step's result before starting the next (Agent runs in the background by default), and never start a builder while another runs. Effort comes from each agent definition.
+`templates/workflow.js` runs the whole pipeline with the Workflow tool. Use it **only when the user opted into workflows**. `args.shell` (`bash` or `powershell`) picks the shell of the generated patch command; a `C:\` repo path defaults to `powershell`. Pass paths with forward slashes. Otherwise run the same steps one by one with the Agent tool (`subagent_type: lean-delegation:lean-…`): wait for each step's result before starting the next (Agent runs in the background by default), and never start a builder while another runs. Effort comes from each agent definition.
 
 ## Rules for you, the orchestrator
 
@@ -70,7 +70,7 @@ The code map is the one long part; it saves more exploration than it costs.
 ## Before you finish a unit (quality gates that stay fixed)
 
 1. Rerun the unit tests yourself (summary line) and the slow checks for this unit.
-2. List the test lines the unit removed: `git diff HEAD -U0 -- <test paths> | grep '^-' | grep -v '^---'`. Every removed or weakened check needs a brief line or a finding that requires it.
+2. List the test lines the unit removed: `git diff HEAD -U0 -- <test paths> | grep '^-' | grep -v '^---'` (PowerShell: `| Select-String '^-' | Select-String -NotMatch '^---'`). Every removed or weakened check needs a brief line or a finding that requires it.
 3. Look at one artefact yourself (a screenshot, the output, or the diff of a generated file).
 4. Update the project docs, write the ledger line, and commit if the user agreed to per-unit commits.
 
@@ -80,10 +80,11 @@ The code map is the one long part; it saves more exploration than it costs.
 - **Project facts belong in the project:** `CLAUDE.md` holds commands and rules, and the domain checklist goes in the brief. Keep the user-level `~/.claude/CLAUDE.md` short: every agent loads it too, on every call.
 - **Split huge files** (over about 2,000 lines) that every unit reads, if the user agrees. Integration scenarios work well one file each.
 - **Project-specific agents** (e.g. `<project>-implementer`) may override these. Copy the generic one, add the project's rules, and pass the names to the template through `args.agents`.
+- **Windows:** `git` must run from the shell tool. GitHub Desktop's bundled git is not on PATH and moves on every update, so install Git for Windows (`winget install --id Git.Git`); it coexists with GitHub Desktop and also gives Claude Code its Bash tool. Without Git Bash, Claude Code offers the PowerShell tool instead; the agents list both tools and their instructions give both idioms, so either works. Both shells accept forward-slash paths; use them everywhere.
 
 ## Measuring
 
-Run `python3 <this skill's folder>/profile_agents.py <subagents or workflow transcript dir>`. It prints per agent:
+Run `python3 <this skill's folder>/profile_agents.py <subagents or workflow transcript dir>`, or on Windows `<this skill's folder>/profile_agents.ps1 <dir>` (same columns). It prints per agent:
 - calls;
 - context at start and end;
 - cache reads and writes;

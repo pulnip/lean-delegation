@@ -21,18 +21,23 @@ export const meta = {
 //   critic: 'optional visual/UX lens prompt',
 //   criticAfterGate: false,       // true when the critic judges artefacts the gate produces
 //   patchPaths: 'src tests',      // paths the patch covers; the unit's owned paths when units are not committed one by one
+//   shell: 'bash',                // shell the gate runs the patch command in: 'bash' or 'powershell'; default: powershell for a C:\ repo path
 //   agents: { finder, implementer, gate, reviewer, fixer },  // optional overrides, e.g. project-specific agents
 //   ns: 'lean-delegation:',       // agent name prefix; the plugin's default. '' for agents installed as plain files
 //   effort: { fixer: 'xhigh' },   // optional per-role effort, only when the user asked or for the step-7 retry
 // }
 const A = args
+const slash = (p) => String(p).replace(/\\/g, '/')
+const REPO = slash(A.repo)
+const SP = slash(A.sp)
+const SHELL = A.shell ?? (/^[A-Za-z]:\//.test(REPO) ? 'powershell' : 'bash')
 const NS = A.ns ?? 'lean-delegation:'
 const AG = Object.assign({ finder: NS + 'lean-finder', implementer: NS + 'lean-implementer', gate: NS + 'lean-gate', reviewer: NS + 'lean-reviewer', fixer: NS + 'lean-fixer' }, A.agents || {})
 const EFFORT = A.effort || {}
 const MAX_BATONS = 3
 const PATHS = A.patchPaths || '.'
 const BASE = [
-  'Repository: ' + A.repo + '. Run folder SP = ' + A.sp + '.',
+  'Repository: ' + REPO + '. Run folder SP = ' + SP + '. Shell: ' + SHELL + '.',
   'Never change git state (no add, commit, push, reset, checkout, restore, stash or clean). The orchestrator owns project docs and commits.',
   'Only the agent told it may build/test/launch does so; everyone else is read-only and must not touch build output.',
 ].join('\n')
@@ -47,7 +52,7 @@ const PATCH = { type: 'object', properties: { lines: { type: 'number' }, files: 
 const run = (role, prompt, opts) => agent(prompt, Object.assign({ agentType: AG[role] }, EFFORT[role] ? { effort: EFFORT[role] } : {}, opts))
 
 phase('Map')
-const mapRes = await run('finder', CTX + '\n\nBuild a CODE MAP for this unit, at most 180 lines, in the `map` field: file:startLine-endLine — symbol — what is there / what changes. grep -n and line ranges only. Cover:\n' + A.mapQ, { label: 'code map', phase: 'Map', schema: MAP })
+const mapRes = await run('finder', CTX + '\n\nBuild a CODE MAP for this unit, at most 180 lines, in the `map` field: file:startLine-endLine — symbol — what is there / what changes. Grep and line ranges only. Cover:\n' + A.mapQ, { label: 'code map', phase: 'Map', schema: MAP })
 const CODEMAP = mapRes ? mapRes.map : '(no code map: locate things with grep -n)'
 
 phase('Implement')
@@ -55,10 +60,10 @@ const impl = {}
 for (const im of A.impl) {
   const runs = []
   for (let n = 1; n <= MAX_BATONS; n++) {
-    const baton = A.sp + '/handoff-' + A.unit + '-' + im.key + '-' + n + '.md'
-    const prev = n > 1 ? A.sp + '/handoff-' + A.unit + '-' + im.key + '-' + (n - 1) + '.md' : null
+    const baton = SP + '/handoff-' + A.unit + '-' + im.key + '-' + n + '.md'
+    const prev = n > 1 ? SP + '/handoff-' + A.unit + '-' + im.key + '-' + (n - 1) + '.md' : null
     const resume = prev ? 'CONTINUE a previous implementer: read ' + prev + ' first, then `git diff --stat` and only the hunks you need. Do not redo finished work.\n' : ''
-    const r = await run('implementer', CTX + '\n\nYou are the ' + im.key.toUpperCase() + ' implementer. OWN: ' + im.own + '\nYou may build/test now (earlier owners finished; later ones wait).\nHANDOFF FILE: ' + baton + '\n' + resume + '\nCODE MAP (line numbers are hints: confirm with grep -n before editing):\n' + CODEMAP + '\n\nTASK:\n' + im.task, { label: 'impl ' + im.key + ' #' + n, phase: 'Implement', schema: IMPL })
+    const r = await run('implementer', CTX + '\n\nYou are the ' + im.key.toUpperCase() + ' implementer. OWN: ' + im.own + '\nYou may build/test now (earlier owners finished; later ones wait).\nHANDOFF FILE: ' + baton + '\n' + resume + '\nCODE MAP (line numbers are hints: confirm with Grep before editing):\n' + CODEMAP + '\n\nTASK:\n' + im.task, { label: 'impl ' + im.key + ' #' + n, phase: 'Implement', schema: IMPL })
     runs.push(r)
     if (!r || r.status !== 'handoff') break
   }
@@ -73,15 +78,18 @@ for (const im of A.impl) {
 }
 
 phase('Verify')
-const patchFile = A.sp + '/diff-' + A.unit + '.patch'
+const patchFile = SP + '/diff-' + A.unit + '.patch'
 const newFiles = 'git ls-files --others --exclude-standard -- ' + PATHS
-const patchCmd = 'cd ' + A.repo + ' && { git diff HEAD --stat -- ' + PATHS + '; ' + newFiles + ' | sed "s/^/ new: /"; git diff HEAD -U10 -- ' + PATHS + '; ' + newFiles + ' | while read f; do git diff --no-index /dev/null "$f"; done; } > ' + patchFile + '; wc -l < ' + patchFile + '; git status --porcelain'
-const patch = await run('gate', 'Repository ' + A.repo + '. Write the unit patch and nothing else. Run exactly:\n' + patchCmd + '\nReturn the line count and changed/new files.', { label: 'patch', phase: 'Verify', schema: PATCH })
+// Same layout in both shells: stat, " new: " list, -U10 diff, each new file as a --no-index diff. UTF-8 output keeps non-ASCII readable.
+const patchCmd = SHELL === 'powershell'
+  ? "[Console]::OutputEncoding = [Text.Encoding]::UTF8; Set-Location '" + REPO + "'; & { git diff HEAD --stat -- " + PATHS + '; ' + newFiles + " | ForEach-Object { ' new: ' + $_ }; git diff HEAD -U10 -- " + PATHS + '; ' + newFiles + " | ForEach-Object { git diff --no-index -- /dev/null $_ } } | Out-File -Encoding utf8 '" + patchFile + "'; (Get-Content '" + patchFile + "').Count; git status --porcelain"
+  : "cd '" + REPO + "' && { git diff HEAD --stat -- " + PATHS + '; ' + newFiles + ' | sed "s/^/ new: /"; git diff HEAD -U10 -- ' + PATHS + '; ' + newFiles + ' | while read f; do git diff --no-index /dev/null "$f"; done; } > \'' + patchFile + "'; wc -l < '" + patchFile + "'; git status --porcelain"
+const patch = await run('gate', 'Repository ' + REPO + '. Write the unit patch and nothing else. Run exactly, in ' + SHELL + ':\n' + patchCmd + '\nReturn the line count and changed/new files.', { label: 'patch', phase: 'Verify', schema: PATCH })
 const notes = Object.entries(impl).map(([key, runs]) => key + ': ' + runs.filter(Boolean).map(r => r.summary + (r.openIssues.length ? '\nOpen issues and decisions: ' + r.openIssues.join('; ') : '')).join('\n')).join('\n\n')
 const patchNote = patch ? patch.lines + ' lines; read it first, once, in 2,000-line chunks if longer' : 'line count unknown; if the file is missing, read `git diff HEAD -U10 -- ' + PATHS + '` instead'
 const reviewPrompt = CTX + '\n\nREVIEW this unit. Patch: ' + patchFile + ' (' + patchNote + ').\nImplementer notes (a deviation justified here is not a finding):\n' + notes + '\n\n' + (A.review || '')
 const criticPrompt = CTX + '\n\nCRITIC lens. ' + (A.critic || '')
-const gatePrompt = (round) => CTX + '\n\nGATE (round ' + round + '). ' + A.gate + '\nSave each check\'s full output as ' + A.sp + '/gate' + round + '-<check>.log.'
+const gatePrompt = (round) => CTX + '\n\nGATE (round ' + round + '). ' + A.gate + '\nSave each check\'s full output as ' + SP + '/gate' + round + '-<check>.log (UTF-8).'
 const thunks = [
   () => run('gate', gatePrompt(1), { label: 'gate 1', phase: 'Verify', schema: GATE }),
   () => run('reviewer', reviewPrompt, { label: 'review', phase: 'Verify', schema: FINDINGS }),
